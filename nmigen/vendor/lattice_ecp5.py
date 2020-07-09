@@ -391,11 +391,28 @@ class LatticeECP5Platform(TemplatedPlatform):
 
         def get_iddrx2(sclk, eclk, d, q0, q1, q2, q3):
             for bit in range(len(d)):
+                z = Signal()
+
+                m.submodules += Instance("DELAYG",
+                    i_A=d[bit],
+                    o_Z=z,
+                    #p_DEL_MODE="USER_DEFINED"
+                    #p_DEL_MODE="DQS_ALIGNED_X2"
+                    #p_DEL_MODE="DQS_CMD_CLK"
+                    #p_DEL_MODE="ECLK_ALIGNED"
+                    #p_DEL_MODE="ECLK_CENTERED"
+                    #p_DEL_MODE="ECLKBRIDGE_ALIGNED"
+                    #p_DEL_MODE="ECLKBRIDGE_CENTERED"
+                    #p_DEL_MODE="SCLK_ALIGNED"
+                    p_DEL_MODE="SCLK_CENTERED"
+                    #p_DEL_MODE="SCLK_ZEROHOLD"
+                )
+
                 m.submodules += Instance("IDDRX2F",
                     i_SCLK=sclk,
                     i_ECLK=eclk,
                     i_RST=Const(0),
-                    i_D=d[bit],
+                    i_D=z,
                     o_Q0=q0[bit], o_Q1=q1[bit], o_Q2=q2[bit], o_Q3=q3[bit]
                 )
 
