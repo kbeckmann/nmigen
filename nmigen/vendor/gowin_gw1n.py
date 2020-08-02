@@ -221,7 +221,9 @@ class GowinGW1NPlatform(TemplatedPlatform):
     def should_skip_port_component(self, port, attrs, component):
         # TODO: Review this later
         return False
+
     def _get_xdr_buffer(self, m, pin, *, i_invert=False, o_invert=False):
+        # TODO This is all broken, probably
         def get_ireg(clk, d, q):
             for bit in range(len(q)):
                 m.d[clk] += d[bit].eq(q[bit])
@@ -284,17 +286,22 @@ class GowinGW1NPlatform(TemplatedPlatform):
         self._check_feature("single-ended input", pin, attrs,
                             valid_xdrs=(0, 1), valid_attrs=True)
         m = Module()
-        i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert)
-
-        # Hack because we don't have PCF/LPF support yet
-        resource_name = None
-        for port_name, pin_name, attrs in self.iter_port_constraints_bits():
-            if (port_name == port.name):
-                resource_name = pin_name
-
-        assert resource_name, f"resource {port.name} not found"
+        # i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert)
 
         for bit in range(len(port)):
+            # Hack because we don't have PCF/LPF support yet
+            resource_name = None
+            for port_name, pin_name, attrs in self.iter_port_constraints_bits():
+                if len(port) == 1:
+                    if (port_name == port.name):
+                        resource_name = pin_name
+                        break
+                else:
+                    if (port_name == f"{port.name}[{bit}]"):
+                        resource_name = pin_name
+                        break
+
+            assert resource_name, f"resource {port.name} not found"
             m.submodules["{}_{}".format(pin.name, bit)] = Instance("GENERIC_IOB",
                 a_BEL=resource_name,
                 p_INPUT_USED=1,
@@ -310,15 +317,20 @@ class GowinGW1NPlatform(TemplatedPlatform):
         m = Module()
         # i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
 
-        # Hack because we don't have PCF/LPF support yet
-        resource_name = None
-        for port_name, pin_name, attrs in self.iter_port_constraints_bits():
-            if (port_name == port.name):
-                resource_name = pin_name
-
-        assert resource_name, f"resource {port.name} not found"
-
         for bit in range(len(port)):
+            # Hack because we don't have PCF/LPF support yet
+            resource_name = None
+            for port_name, pin_name, attrs in self.iter_port_constraints_bits():
+                if len(port) == 1:
+                    if (port_name == port.name):
+                        resource_name = pin_name
+                        break
+                else:
+                    if (port_name == f"{port.name}[{bit}]"):
+                        resource_name = pin_name
+                        break
+
+            assert resource_name, f"resource {port.name} not found"
             m.submodules["{}_{}".format(pin.name, bit)] = Instance("GENERIC_IOB",
                 a_BEL=resource_name,
                 a_BEL_STRENGTH="5",
@@ -332,6 +344,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
     def get_tristate(self, pin, port, attrs, invert):
         self._check_feature("single-ended tristate", pin, attrs,
                             valid_xdrs=(0, 1), valid_attrs=True)
+        # TODO
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
         for bit in range(len(port)):
@@ -347,6 +360,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
     def get_input_output(self, pin, port, attrs, invert):
         self._check_feature("single-ended input/output", pin, attrs,
                             valid_xdrs=(0, 1), valid_attrs=True)
+        # TODO
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert, o_invert=invert)
         for bit in range(len(port)):
@@ -360,13 +374,17 @@ class GowinGW1NPlatform(TemplatedPlatform):
         return m
 
     def get_diff_input(self, pin, p_port, n_port, attrs, invert):
+        # TODO
         return False
 
     def get_diff_output(self, pin, p_port, n_port, attrs, invert):
+        # TODO
         return False
 
     def get_diff_tristate(self, pin, p_port, n_port, attrs, invert):
+        # TODO
         return False
 
     def get_diff_input_output(self, pin, p_port, n_port, attrs, invert):
+        # TODO
         return False
