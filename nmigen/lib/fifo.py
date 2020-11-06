@@ -295,7 +295,7 @@ class AsyncFIFO(Elaboratable, FIFOInterface):
     """.strip(),
     w_attributes="")
 
-    def __init__(self, *, width, depth, r_domain="read", w_domain="write", exact_depth=False):
+    def __init__(self, *, width, depth, r_domain="read", w_domain="write", exact_depth=False, attrs=None):
         if depth != 0:
             try:
                 depth_bits = log2_int(depth, need_pow2=exact_depth)
@@ -312,6 +312,7 @@ class AsyncFIFO(Elaboratable, FIFOInterface):
         self._r_domain = r_domain
         self._w_domain = w_domain
         self._ctr_bits = depth_bits + 1
+        self.attrs = attrs
 
     def elaborate(self, platform):
         m = Module()
@@ -383,7 +384,7 @@ class AsyncFIFO(Elaboratable, FIFOInterface):
         m.d[self._w_domain] += self.w_level.eq((produce_w_bin - consume_w_bin))
         m.d.comb += self.r_level.eq((produce_r_bin - consume_r_bin))
 
-        storage = Memory(width=self.width, depth=self.depth)
+        storage = Memory(width=self.width, depth=self.depth, attrs=self.attrs)
         w_port  = m.submodules.w_port = storage.write_port(domain=self._w_domain)
         r_port  = m.submodules.r_port = storage.read_port (domain=self._r_domain,
                                                            transparent=False)
@@ -475,7 +476,7 @@ class AsyncFIFOBuffered(Elaboratable, FIFOInterface):
     """.strip(),
     w_attributes="")
 
-    def __init__(self, *, width, depth, r_domain="read", w_domain="write", exact_depth=False):
+    def __init__(self, *, width, depth, r_domain="read", w_domain="write", exact_depth=False, attrs=None):
         if depth != 0:
             try:
                 depth_bits = log2_int(max(0, depth - 1), need_pow2=exact_depth)
@@ -489,6 +490,7 @@ class AsyncFIFOBuffered(Elaboratable, FIFOInterface):
         self.r_rst = Signal()
         self._r_domain = r_domain
         self._w_domain = w_domain
+        self.attrs = attrs
 
     def elaborate(self, platform):
         m = Module()
@@ -500,7 +502,7 @@ class AsyncFIFOBuffered(Elaboratable, FIFOInterface):
             return m
 
         m.submodules.unbuffered = fifo = AsyncFIFO(width=self.width, depth=self.depth - 1,
-            r_domain=self._r_domain, w_domain=self._w_domain)
+            r_domain=self._r_domain, w_domain=self._w_domain, attrs=self.attrs)
 
         m.d.comb += [
             fifo.w_data.eq(self.w_data),
