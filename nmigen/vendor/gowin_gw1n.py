@@ -72,7 +72,12 @@ class GowinGW1NPlatform(TemplatedPlatform):
             {% endfor %}
             read_ilang {{name}}.il
             {{get_override("script_after_read")|default("# (script_after_read placeholder)")}}
-            synth_gowin {{get_override("synth_opts")|options}} -top {{name}} -vout {{name}}.vg
+            synth_gowin {{get_override("synth_opts")|options}} -top {{name}} -vout {{name}}_raw.vg
+
+            # Workaround for PnR tool bug: IOBUF and TBUF require ports to be passed directly, not via wires.
+            opt_clean -purge
+            write_verilog -decimal -attr2comment -defparam -renameprefix gen {{name}}.vg
+
             {{get_override("script_after_synth")|default("# (script_after_synth placeholder)")}}
         """,
         # TODO: Make IO_TYPE variable
