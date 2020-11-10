@@ -14,7 +14,8 @@ class GowinGW1NPlatform(TemplatedPlatform):
     ------------------------
 
     Required tools:
-        * ``yosys``
+        * ``GowinSynthesis`` (optional)
+        * `` yosys``
         * ``gw_sh``
 
     The environment is populated by running the script specified in the environment variable
@@ -44,6 +45,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
     # Gowin templates
 
     _gowin_required_tools = [
+        "GowinSynthesis",
         "gw_sh",
         "yosys"
     ]
@@ -111,6 +113,11 @@ class GowinGW1NPlatform(TemplatedPlatform):
         """,
     }
     _gowin_command_templates = [
+        # r"""
+        # {{invoke_tool("GowinSynthesis")}}
+        #     -i {{name}}.debug.v
+        # """,
+
         r"""
         {{invoke_tool("yosys")}}
             {{quiet("-q")}}
