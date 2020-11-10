@@ -83,14 +83,15 @@ class GowinGW1NPlatform(TemplatedPlatform):
                 IO_PORT "{{port_name}}" IO_TYPE=LVCMOS33;
             {% endfor %}
         """,
-        # TODO: This enables timing
-        # "{{name}}.sdc": r"""
-        #     {% for net_signal, port_signal, frequency in platform.iter_clock_constraints() -%}
-        #         create_clock -name {{net_signal|hierarchy(".")}} -period {{frequency/1000000}}
-        #     {% endfor%}
-        # """,
+        "{{name}}.sdc": r"""
+            {% for net_signal, port_signal, frequency in platform.iter_clock_constraints() -%}
+                create_clock -name {{net_signal|hierarchy(".")}} -period {{1000000000/frequency}} -waveform {0 {{500000000/frequency}}} [get_ports { {{port_signal.name}} }]
+            {% endfor%}
+
+        """,
         "run.tcl": r"""
             add_file -type cst {{name}}.cst
+            add_file -type sdc {{name}}.sdc
             add_file -type netlist {{name}}.vg
             set_device -name {{platform.device}} {{platform.family}}-{{platform.voltage}}{{platform._device_suffix}}{{platform.package}}{{platform.speed}}
             set_option -gen_posp 1
