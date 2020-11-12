@@ -14,7 +14,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
     ------------------------
 
     Required tools:
-        * ``GowinSynthesis`` (optional)
+        * ``GowinSynthesis`` (optional) #TODO Remove before creating PR
         * `` yosys``
         * ``gw_sh``
 
@@ -45,7 +45,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
     # Gowin templates
 
     _gowin_required_tools = [
-        "GowinSynthesis",
+        "GowinSynthesis", #TODO Remove before creating PR
         "gw_sh",
         "yosys"
     ]
@@ -129,6 +129,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
         """,
     }
     _gowin_command_templates = [
+        #TODO Remove before creating PR
         # r"""
         # {{invoke_tool("GowinSynthesis")}}
         #     -i {{name}}.v
