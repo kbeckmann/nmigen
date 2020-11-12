@@ -98,9 +98,12 @@ class GowinGW1NPlatform(TemplatedPlatform):
         """,
         "{{name}}.sdc": r"""
             {% for net_signal, port_signal, frequency in platform.iter_clock_constraints() -%}
+                {% if port_signal is not none -%}
                 create_clock -name {{net_signal|hierarchy(".")}} -period {{1000000000/frequency}} -waveform {0 {{500000000/frequency}}} [get_ports { {{port_signal.name}} }]
-            {% endfor%}
-
+                {% else -%}
+                    create_clock -name {{net_signal|hierarchy(".")}} -period {{1000000000/frequency}} -waveform {0 {{500000000/frequency}}} [get_nets { {{net_signal}} }]
+                {% endif %}
+            {% endfor %}
         """,
         "run.tcl": r"""
             add_file -type cst {{name}}.cst
