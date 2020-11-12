@@ -320,7 +320,6 @@ class GowinGW1NPlatform(TemplatedPlatform):
                             valid_xdrs=(0, 1), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert)
-
         for bit in range(pin.width):
             m.submodules["{}_{}".format(pin.name, bit)] = Instance("IBUF",
                 i_I=port.io[bit],
@@ -333,7 +332,6 @@ class GowinGW1NPlatform(TemplatedPlatform):
                             valid_xdrs=(0, 1), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
-
         for bit in range(pin.width):
             m.submodules["{}_{}".format(pin.name, bit)] = Instance("OBUF",
                 i_I=o[bit],
