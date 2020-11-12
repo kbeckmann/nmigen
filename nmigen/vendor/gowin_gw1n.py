@@ -234,8 +234,23 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
             return m
 
+    _single_ended_io_types = [
+        "LVTTL33", "LVCMOS33", "LVCMOS25", "LVCMOS18", "LVCMOS15", "LVCMOS12", "SSTL25_I",
+        "SSTL25_II", "SSTL33_I", "SSTL33_II", "SSTL18_I", "SSTL18_II", "SSTL15", "HSTL18_I",
+        "HSTL18_II", "HSTL15_I", "PCI33"
+    ]
+    _differential_io_types = [
+        "LVPECL33E", "MLVDS25E", "BLVDS25E", "RSDS25E", "LVDS25E", "LVDS25", "RSDS", "MINILVDS",
+        "PPLVDS", "SSTL15D", "SSTL25D_I", "SSTL25D_II", "SSTL33D_I", "SSTL33D_II", "SSTL18D_I",
+        "SSTL18D_II", "HSTL18D_I", "HSTL18D_II", "HSTL15D_I", "LVCMOS12D", "LVCMOS15D",
+        "LVCMOS18D", "LVCMOS25D", "LVCMOS33D","MIPI"
+    ]
+
     def should_skip_port_component(self, port, attrs, component):
-        # TODO: Review this later, might be needed for diff pairs?
+        # On Gowin GW1N, a differential IO is placed by only instantiating an IO buffer primitive at
+        # the non-inverting pin.
+        if attrs.get("IO_TYPE") in self._differential_io_types and component == "n":
+            return True
         return False
 
     def _get_xdr_buffer(self, m, pin, *, i_invert=False, o_invert=False):
@@ -353,18 +368,53 @@ class GowinGW1NPlatform(TemplatedPlatform):
             )
         return m
 
-    def get_diff_input(self, pin, p_port, n_port, attrs, invert):
-        # TODO
-        return False
+    def get_diff_input(self, pin, port, attrs, invert):
+        self._check_feature("differential input", pin, attrs,
+                            valid_xdrs=(0, 1), valid_attrs=True)
+        m = Module()
+        i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert)
+        for bit in range(pin.width):
+            m.submodules["{}_{}".format(pin.name, bit)] = Instance("IBUF",
+                i_I=port.p[bit],
+                o_O=i[bit]
+            )
+        return m
 
-    def get_diff_output(self, pin, p_port, n_port, attrs, invert):
-        # TODO
-        return False
+    def get_diff_output(self, pin, port, attrs, invert):
+        self._check_feature("differential output", pin, attrs,
+                            valid_xdrs=(0, 1), valid_attrs=True)
+        m = Module()
+        i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
+        for bit in range(pin.width):
+            m.submodules["{}_{}".format(pin.name, bit)] = Instance("OBUF",
+                i_I=o[bit],
+                o_O=port.p[bit]
+            )
+        return m
 
-    def get_diff_tristate(self, pin, p_port, n_port, attrs, invert):
-        # TODO
-        return False
+    def get_diff_tristate(self, pin, port, attrs, invert):
+        self._check_feature("differential tristate", pin, attrs,
+                            valid_xdrs=(0, 1), valid_attrs=True)
+        m = Module()
+        i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
+        for bit in range(pin.width):
+            m.submodules["{}_{}".format(pin.name, bit)] = Instance("TBUF",
+                i_OEN=t,
+                i_I=o[bit],
+                o_O=port.p[bit]
+            )
+        return m
 
-    def get_diff_input_output(self, pin, p_port, n_port, attrs, invert):
-        # TODO
-        return False
+    def get_diff_input_output(self, pin, port, attrs, invert):
+        self._check_feature("differential input/output", pin, attrs,
+                            valid_xdrs=(0, 1), valid_attrs=True)
+        m = Module()
+        i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert, o_invert=invert)
+        for bit in range(pin.width):
+            m.submodules["{}_{}".format(pin.name, bit)] = Instance("IOBUF",
+                i_OEN=t,
+                i_I=o[bit],
+                o_O=i[bit],
+                io_IO=port.p[bit]
+            )
+        return m
