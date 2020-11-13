@@ -130,18 +130,18 @@ class GowinGW1NPlatform(TemplatedPlatform):
     }
     _gowin_command_templates = [
         #TODO Remove before creating PR
-        # r"""
-        # {{invoke_tool("GowinSynthesis")}}
-        #     -i {{name}}.v
-        # """,
-
         r"""
-        {{invoke_tool("yosys")}}
-            {{quiet("-q")}}
-            {{get_override("yosys_opts")|options}}
-            -l {{name}}.rpt
-            {{name}}.ys
+        {{invoke_tool("GowinSynthesis")}}
+            -i {{name}}.v
         """,
+
+        # r"""
+        # {{invoke_tool("yosys")}}
+        #     {{quiet("-q")}}
+        #     {{get_override("yosys_opts")|options}}
+        #     -l {{name}}.rpt
+        #     {{name}}.ys
+        # """,
 
         r"""
         {{invoke_tool("gw_sh")}}
@@ -254,16 +254,23 @@ class GowinGW1NPlatform(TemplatedPlatform):
         return False
 
     def _get_xdr_buffer(self, m, pin, *, i_invert=False, o_invert=False):
-        # TODO: This is broken for xdr>0 and diff pairs
-
         def get_ireg(clk, d, q):
             for bit in range(len(q)):
-                m.d[clk] += d[bit].eq(q[bit])
+                m.submodules += Instance("DFF",
+                    i_D=d[bit],
+                    o_Q=q[bit],
+                    i_CLK=clk
+                )
 
-        def get_oreg(clk, d, q):
+        def get_oreg(clk, d, q, init=0):
+            # TODO: For some reason, INIT doesn't have any effect.
             for bit in range(len(q)):
-                print(d[0], clk)
-                m.d[clk] += d[bit].eq(q[bit])
+                m.submodules += Instance("DFF",
+                    i_D=d[bit],
+                    o_Q=q[bit],
+                    i_CLK=clk,
+                    p_INIT=init
+                )
 
         def get_ineg(z, invert):
             if invert:
@@ -308,8 +315,11 @@ class GowinGW1NPlatform(TemplatedPlatform):
                 get_ireg(pin.i_clk, i, pin_i)
             if "o" in pin.dir:
                 get_oreg(pin.o_clk, pin_o, o)
+            # TODO: For some reason, INIT doesn't have any effect.
+            #       This has the effect that even if an output is initialized with
+            #       a low `pin.oe`, the pin will be driven until a rising edge on o_clk
             if pin.dir in ("oe", "io"):
-                get_oreg(pin.o_clk, ~pin.oe, t)
+                get_oreg(pin.o_clk, ~pin.oe, t, init=1)
         else:
             assert False
 
