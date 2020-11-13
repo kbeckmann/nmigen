@@ -256,18 +256,32 @@ class GowinGW1NPlatform(TemplatedPlatform):
     def _get_xdr_buffer(self, m, pin, *, i_invert=False, o_invert=False):
         def get_ireg(clk, d, q):
             for bit in range(len(q)):
-                m.submodules += Instance("DFF",
+                m.submodules += Instance("DFFR",
                     i_D=d[bit],
                     o_Q=q[bit],
+                    i_RESET=Const(0),
                     i_CLK=clk
                 )
 
         def get_oreg(clk, d, q, init=0):
-            # TODO: For some reason, INIT doesn't have any effect.
             for bit in range(len(q)):
-                m.submodules += Instance("DFF",
-                    i_D=d[bit],
-                    o_Q=q[bit],
+                if init == 1:
+                    # DFFS has an initial Q of 1
+                    m.submodules += Instance("DFFS",
+                        i_D=d[bit],
+                        o_Q=q[bit],
+                        i_SET=Const(0),
+                        i_CLK=clk
+                    )
+                else:
+                    # DFFR has an initial Q of 0
+                    m.submodules += Instance("DFFR",
+                        i_D=d[bit],
+                        o_Q=q[bit],
+                        i_RESET=Const(0),
+                        i_CLK=clk
+                    )
+
                     i_CLK=clk,
                     p_INIT=init
                 )
@@ -315,6 +329,8 @@ class GowinGW1NPlatform(TemplatedPlatform):
                 get_ireg(pin.i_clk, i, pin_i)
             if "o" in pin.dir:
                 get_oreg(pin.o_clk, pin_o, o)
+            if pin.dir in ("oe", "io"):
+                get_oreg(pin.o_clk, ~pin.oe, t, init=1)
             # TODO: For some reason, INIT doesn't have any effect.
             #       This has the effect that even if an output is initialized with
             #       a low `pin.oe`, the pin will be driven until a rising edge on o_clk
