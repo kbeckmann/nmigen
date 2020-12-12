@@ -282,8 +282,21 @@ class GowinGW1NPlatform(TemplatedPlatform):
                         i_CLK=clk
                     )
 
+        def get_iddr(clk, d, q0, q1):
+            for bit in range(len(d)):
+                m.submodules += Instance("IDDR",
                     i_CLK=clk,
-                    p_INIT=init
+                    i_D=d[bit],
+                    o_Q0=q0[bit], o_Q1=q1[bit]
+                )
+
+        def get_oddr(clk, d0, d1, q):
+            for bit in range(len(q)):
+                m.submodules += Instance("ODDR",
+                    i_CLK=clk,
+                    i_D0=d0[bit], i_D1=d1[bit],
+                    o_Q0=q[bit], o_Q1=Signal(),
+                    i_TX=Signal()
                 )
 
         def get_ineg(z, invert):
@@ -305,9 +318,15 @@ class GowinGW1NPlatform(TemplatedPlatform):
         if "i" in pin.dir:
             if pin.xdr < 2:
                 pin_i  = get_ineg(pin.i,  i_invert)
+            elif pin.xdr == 2:
+                pin_i0 = get_ineg(pin.i0, i_invert)
+                pin_i1 = get_ineg(pin.i1, i_invert)
         if "o" in pin.dir:
             if pin.xdr < 2:
                 pin_o  = get_oneg(pin.o,  o_invert)
+            elif pin.xdr == 2:
+                pin_o0 = get_oneg(pin.o0, o_invert)
+                pin_o1 = get_oneg(pin.o1, o_invert)
 
         i = o = t = None
         if "i" in pin.dir:
@@ -331,9 +350,11 @@ class GowinGW1NPlatform(TemplatedPlatform):
                 get_oreg(pin.o_clk, pin_o, o)
             if pin.dir in ("oe", "io"):
                 get_oreg(pin.o_clk, ~pin.oe, t, init=1)
-            # TODO: For some reason, INIT doesn't have any effect.
-            #       This has the effect that even if an output is initialized with
-            #       a low `pin.oe`, the pin will be driven until a rising edge on o_clk
+        elif pin.xdr == 2:
+            if "i" in pin.dir:
+                get_iddr(pin.i_clk, i, pin_i0, pin_i1)
+            if "o" in pin.dir:
+                get_oddr(pin.o_clk, pin_o0, pin_o1, o)
             if pin.dir in ("oe", "io"):
                 get_oreg(pin.o_clk, ~pin.oe, t, init=1)
         else:
@@ -343,7 +364,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_input(self, pin, port, attrs, invert):
         self._check_feature("single-ended input", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert)
         for bit in range(pin.width):
@@ -355,7 +376,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_output(self, pin, port, attrs, invert):
         self._check_feature("single-ended output", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
         for bit in range(pin.width):
@@ -367,7 +388,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_tristate(self, pin, port, attrs, invert):
         self._check_feature("single-ended tristate", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
         for bit in range(pin.width):
@@ -380,7 +401,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_input_output(self, pin, port, attrs, invert):
         self._check_feature("single-ended input/output", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert, o_invert=invert)
         for bit in range(pin.width):
@@ -394,7 +415,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_diff_input(self, pin, port, attrs, invert):
         self._check_feature("differential input", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert)
         for bit in range(pin.width):
@@ -406,7 +427,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_diff_output(self, pin, port, attrs, invert):
         self._check_feature("differential output", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
         for bit in range(pin.width):
@@ -418,7 +439,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_diff_tristate(self, pin, port, attrs, invert):
         self._check_feature("differential tristate", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, o_invert=invert)
         for bit in range(pin.width):
@@ -431,7 +452,7 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
     def get_diff_input_output(self, pin, port, attrs, invert):
         self._check_feature("differential input/output", pin, attrs,
-                            valid_xdrs=(0, 1), valid_attrs=True)
+                            valid_xdrs=(0, 1, 2), valid_attrs=True)
         m = Module()
         i, o, t = self._get_xdr_buffer(m, pin, i_invert=invert, o_invert=invert)
         for bit in range(pin.width):
