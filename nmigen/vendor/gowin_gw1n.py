@@ -261,30 +261,19 @@ class GowinGW1NPlatform(TemplatedPlatform):
 
             # User-defined clock signal.
             clk_i = self.request(self.default_clk).i
-            delay = int(15e-6 * self.default_clk_frequency)
 
             if self.default_rst is not None:
                 rst_i = self.request(self.default_rst).i
             else:
                 rst_i = Const(0)
 
-            # Power-on-reset domain
-            m.domains += ClockDomain("por", reset_less=True, local=True)
-            timer = Signal(range(delay))
-            ready = Signal()
-            m.d.comb += ClockSignal("por").eq(clk_i)
-            with m.If(timer == delay):
-                m.d.por += ready.eq(1)
-            with m.Else():
-                m.d.por += timer.eq(timer + 1)
-
             # Primary domain
             m.domains += ClockDomain("sync")
             m.d.comb += ClockSignal("sync").eq(clk_i)
             if self.default_rst is not None:
-                m.submodules.reset_sync = ResetSynchronizer(~ready | rst_i, domain="sync")
+                m.submodules.reset_sync = ResetSynchronizer(rst_i, domain="sync")
             else:
-                m.d.comb += ResetSignal("sync").eq(~ready)
+                m.d.comb += ResetSignal("sync").eq(0)
 
             return m
 
